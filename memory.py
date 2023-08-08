@@ -87,3 +87,33 @@ class Memory:
             base_address = ctypes.windll.kernel32.LoadLibraryW(process_path)
             return ctypes.c_uint64(base_address).value
         return 0
+    
+    def read_process_memory(self, address, size):
+        buffer = ctypes.create_string_buffer(size)
+        bytes_read = ctypes.wintypes.DWORD(0)
+
+        if ctypes.windll.kernel32.ReadProcessMemory(
+            self.h_handle, address, buffer, size, ctypes.byref(bytes_read)
+        ):
+            return buffer.raw[:bytes_read.value]
+        return None
+    
+    def write_process_memory(self, address, data):
+        data_size = len(data)
+        buffer = ctypes.create_string_buffer(data, data_size)
+        bytes_written = ctypes.wintypes.DWORD(0)
+
+        if ctypes.windll.kernel32.WriteProcessMemory(
+            self.h_handle, address, buffer, data_size, ctypes.byref(bytes_written)
+        ):
+            return bytes_written.value == data_size
+        return False
+    
+    def virtual_alloc_ex(self, size):
+        address = ctypes.windll.kernel32.VirtualAllocEx(
+            self.h_handle, 0, size, 0x1000, 0x04
+        )
+        return address
+
+    def virtual_free_ex(self, address, size):
+        return ctypes.windll.kernel32.VirtualFreeEx(self.h_handle, address, size, 0x8000)
